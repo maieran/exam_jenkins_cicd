@@ -4,6 +4,7 @@ pipeline {
         stage("Init pipeline") {
             steps {
                 echo "init pipeline"
+                echo "we are on test branch"
             }
            
         }
