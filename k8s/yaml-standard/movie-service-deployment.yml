@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-movie-service-deployment
+  labels:
+    app: jenkins-movie-service-deployment
+spec:
+  # Keep the three most recent ReplicaSets for rollback
+  revisionHistoryLimit: 3
+  replicas: 1
+
+  # RollingUpdate is actually always default, here to make it more explicit in case of an incident
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Keep current Pod available while replacement start e.g. after a software update release
+      maxUnavailable: 0
+      # Kubernetes may temporarily create one additional Pod.
+      maxSurge: 1
+  
+  selector:
+    matchLabels:
+      app: jenkins-movie-service-deployment
+  
+  template:
+    metadata:
+      labels:
+        app: jenkins-movie-service-deployment
+  
+    spec:
+      # This is the wait time for graceful shutdown for the container after the termination request 
+      terminationGracePeriodSeconds: 30
+
+      initContainers:
+      # In Docker Compose we saw depends_on: - movie_db
+      # In k8s there is no depends_on field
+      # Therefore the init containers waits until PostgreSQL accepts connections
+      - name: waitfor-postgresql-db
+        image: postgres:12.1-alpine
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - | 
+          until pg_isready -h jenkins-psql-movie-db -p 5432; do
+            echo "Waiting jenkins-psql-movie-db..."
+            sleep 2
+          done
+
+          echo "jenkins-psql-movie-db is ready."
+
+      containers:
+      - name: jenkins-movie-service-deployment
+        image: andrem43/exam-movie-service-jenkins:latest
+        imagePullPolicy: Always
+        command:
+          - python
+          - -m
+          - uvicorn
+        args:
+          - app.main:app 
+          - --host 
+          - 0.0.0.0 
+          - --port 
+          - "8000"
+          - --loop
+          - asyncio
+        ports: 
+          - name: http
+            protocol: TCP
+            containerPort: 8000
+        env:
+          - name: DATABASE_URI
+            valueFrom:
+              secretKeyRef:
+                name: exam-movie-credentials
+                key: movie-database-uri
+          - name: CAST_SERVICE_HOST_URL
+            value: http://jenkins-cast-service-service:8000/api/v1/casts/
+
+        # Gives this FastAPI Service time to start  
+        startupProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 2
+          timeoutSeconds: 2
+          failureThreshold: 30
+
+        # Determines whether this Pod may receive traffice
+        # form the  movie-service Service(k8s).
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        # Restarts contaienr if the application
+        # repeatedly stops accepting incoming connections.
+        livenessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        # Provides the minimum resources (request) and the maximum allowed usage (lints) for a container    
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

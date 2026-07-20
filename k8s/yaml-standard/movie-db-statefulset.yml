@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins-psql-movie-db
+  labels:
+    app: jenkins-psql-movie-db
+
+spec:
+  selector:
+    matchLabels:
+      app: jenkins-psql-movie-db
+  
+  serviceName: movie-db-headless-service
+  replicas: 1
+  
+  template:
+    metadata:
+      labels:
+        app: jenkins-psql-movie-db
+
+    spec: 
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: jenkins-psql-movie-db
+          image: postgres:12.1-alpine
+          imagePullPolicy: IfNotPresent
+        
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: exam-movie-credentials
+                  key: movie-db-name
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: exam-movie-credentials
+                  key:   movie-db-user
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: exam-movie-credentials
+                  key: movie-db-password
+
+            - name: PGDATA
+              value: /var/lib/postgresql/data/
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c 
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          volumeMounts:
+            - name: movie-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: movie-db-data
+
+      spec:
+        accessModes:
+          - ReadWriteOnce
+
+        resources:
+          requests:
+            storage: 1Gi     
+
+            
+            
+            
+              
