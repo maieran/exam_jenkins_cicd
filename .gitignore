@@ -1,0 +1,4 @@
+k8s/yaml-standard/*-secret.yml
+!k8s/yaml-standard/*-secret.example.yml
+
+k8s/local-secrets/
