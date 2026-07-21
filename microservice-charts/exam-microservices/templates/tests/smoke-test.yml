@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: "{{ .Release.Name }}-smoke-test"
+
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+
+spec:
+  restartPolicy: Never
+
+  containers:
+    - name: smoke-test
+      image: curlimages/curl:8.10.1
+      imagePullPolicy: IfNotPresent
+
+      command:
+        - sh
+        - -c
+
+      args:
+        - |
+          set -eu
+
+          BASE_URL="http://jenkins-nginx-service:{{ .Values.nginx.service.port }}"
+
+          echo "Checking NGINX health..."
+          curl --fail --silent --show-error \
+            "${BASE_URL}/healthz"
+
+          echo "Checking cast API..."
+          curl --fail --silent --show-error \
+            "${BASE_URL}/api/v1/casts/docs" \
+            > /dev/null
+
+          echo "Checking movie API..."
+          curl --fail --silent --show-error \
+            "${BASE_URL}/api/v1/movies/docs" \
+            > /dev/null
+
+          echo "All Helm smoke tests passed."

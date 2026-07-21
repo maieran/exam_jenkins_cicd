@@ -1,0 +1,136 @@
+images: 
+  pullPolicy: IfNotPresent
+
+  castService:
+    repository: andrem43/exam-cast-service-jenkins
+    tag: latest
+    pullPolicy: Always
+  
+  movieService:
+    repository: andrem43/exam-movie-service-jenkins
+    tag: latest
+    pullPolicy: Always
+  
+  postgres:
+    repository: postgres
+    tag: 12.1-alpine
+
+  nginx:
+    repository: nginx
+    tag: 1.27-alpine
+
+castService:
+  replicaCount: 1
+  revisionHistoryLimit: 3
+
+  images:
+    pullPolicy: Always
+
+  service:
+    port: 8000
+    targetPort: 8000
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  spec:
+    terminationGracePeriodSeconds: 30
+
+movieService:
+  replicaCount: 1
+  revisionHistoryLimit: 3
+
+  service:
+    port: 8000
+    targetPort: 8000
+  
+  castServiceUrl: http://jenkins-cast-service-service:8000/api/v1/casts/
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  spec:
+    terminationGracePeriodSeconds: 30
+
+castDatabase:
+  replicaCount: 1
+
+  service:
+    port: 5432
+    targetPort: 5432
+  
+  persistence:
+    storageClassName: local-path
+    accessModes: ReadWriteOnce
+    size: 1Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  spec:
+    terminationGracePeriodSeconds: 30
+
+movieDatabase:
+  replicaCount: 1
+
+  service:
+    port: 5432
+    targetPort: 5432
+  
+  persistence:
+    storageClassName: local-path
+    accessModes: ReadWriteOnce
+    size: 1Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  spec:
+    terminationGracePeriodSeconds: 30
+
+nginx:
+  replicaCount: 1
+  revisionHistoryLimit: 3
+
+  containerPort: 8080
+
+  service: 
+    type: NodePort
+    port: 8080
+    targetPort: 8080
+    nodePort: 30088
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+secrets:
+  cast:
+    existingSecret: exam-cast-credentials
+  
+  movie:
+    existingSecret: exam-movie-credentials

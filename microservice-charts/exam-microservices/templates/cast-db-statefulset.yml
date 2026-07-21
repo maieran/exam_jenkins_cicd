@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins-psql-cast-db
+  labels:
+    app: jenkins-psql-cast-db
+
+spec:
+  selector:
+    matchLabels:
+      app: jenkins-psql-cast-db
+  
+  serviceName: cast-db-headless-service
+  replicas: {{ .Values.castDatabase.replicaCount }}
+  
+  template:
+    metadata:
+      labels:
+        app: jenkins-psql-cast-db
+
+    spec: 
+      terminationGracePeriodSeconds: {{ .Values.castDatabase.spec.terminationGracePeriodSeconds }}
+
+      containers:
+        - name: jenkins-psql-cast-db
+          image: "{{ .Values.images.postgres.repository }}:{{ .Values.images.postgres.tag }}"
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+        
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.castDatabase.service.port }}
+              protocol: TCP
+          
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.cast.existingSecret }}
+                  key: cast-db-name
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.cast.existingSecret }}
+                  key:   cast-db-user
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.cast.existingSecret }}
+                  key: cast-db-password
+                  
+            - name: PGDATA
+              value: /var/lib/postgresql/data/
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c 
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          resources:
+            requests:
+              cpu: {{ .Values.castDatabase.resources.requests.cpu }}
+              memory: {{ .Values.castDatabase.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.castDatabase.resources.limits.cpu }}
+              memory: {{ .Values.castDatabase.resources.limits.memory }}
+
+          volumeMounts:
+            - name: cast-db-data
+              mountPath: /var/lib/postgresql/data 
+  volumeClaimTemplates:
+    - metadata:
+        name: cast-db-data
+
+      spec:
+        storageClassName: {{ .Values.castDatabase.persistence.storageClassName }}
+        
+        accessModes:
+          - {{ .Values.castDatabase.persistence.accessModes }}
+
+        resources:
+          requests:
+            storage: {{ .Values.castDatabase.persistence.size }}    

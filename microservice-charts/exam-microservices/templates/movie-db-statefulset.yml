@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins-psql-movie-db
+  labels:
+    app: jenkins-psql-movie-db
+
+spec:
+  selector:
+    matchLabels:
+      app: jenkins-psql-movie-db
+  
+  serviceName: movie-db-headless-service
+  replicas: {{ .Values.movieDatabase.replicaCount }}
+  
+  template:
+    metadata:
+      labels:
+        app: jenkins-psql-movie-db
+
+    spec: 
+      terminationGracePeriodSeconds: {{ .Values.movieDatabase.spec.terminationGracePeriodSeconds }}
+
+      containers:
+        - name: jenkins-psql-movie-db
+          image: "{{ .Values.images.postgres.repository }}:{{ .Values.images.postgres.tag }}"
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+        
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.movieDatabase.service.targetPort }}
+              protocol: TCP
+          
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.movie.existingSecret }}
+                  key: movie-db-name
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.movie.existingSecret }}
+                  key:   movie-db-user
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.movie.existingSecret }}
+                  key: movie-db-password
+
+            - name: PGDATA
+              value: /var/lib/postgresql/data/
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c 
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          resources:
+            requests:
+              cpu: {{ .Values.movieDatabase.resources.requests.cpu }}
+              memory: {{ .Values.movieDatabase.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.movieDatabase.resources.limits.cpu }}
+              memory: {{ .Values.movieDatabase.resources.limits.memory }}
+
+          volumeMounts:
+            - name: movie-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: movie-db-data
+
+      spec:
+        storageClassName: {{ .Values.movieDatabase.persistence.storageClassName }}
+
+        accessModes:
+          - {{ .Values.movieDatabase.persistence.accessModes }}
+
+        resources:
+          requests:
+            storage: {{ .Values.movieDatabase.persistence.size }}   
+
+            
+            
+            
+              
