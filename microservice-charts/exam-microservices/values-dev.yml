@@ -1,0 +1,11 @@
+castService:
+  replicaCount: 1
+
+movieService:
+  replicaCount: 1
+
+nginx:
+  replicaCount: 1
+
+  service:
+    nodePort: 30088

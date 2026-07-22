@@ -1,0 +1,11 @@
+apiVersion: v2
+name: exam-microservices
+description: >
+  Helm chart for the Jenkins CI/CD exam app containing
+  movie-service, cast-service, a PostgreSQL db to each service
+  and a NGINX as reverse proxy and load balancer sitting at the forefront.
+
+type: application
+icon: https://www.svgrepo.com/download/330413/fastapi.svg
+version: 0.1.0
+appVersion: "1.0.0"

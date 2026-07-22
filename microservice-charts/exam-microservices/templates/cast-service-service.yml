@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: jenkins-cast-service-service
+  labels:
+    app: jenkins-cast-service-service
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: jenkins-cast-service-deployment
+  
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.castService.service.port }}
+      targetPort: {{ .Values.castService.service.targetPort }}

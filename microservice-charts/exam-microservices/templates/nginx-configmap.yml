@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-nginx-configmap
+data:
+  default.conf: |-
+{{ .Files.Get "files/nginx/default.conf" | nindent 4 }}

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins-psql-cast-db
+  labels:
+    app: jenkins-psql-cast-db
+
+spec:
+  selector:
+    matchLabels:
+      app: jenkins-psql-cast-db
+  
+  serviceName: cast-db-headless-service
+  replicas: 1
+  
+  template:
+    metadata:
+      labels:
+        app: jenkins-psql-cast-db
+
+    spec: 
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: jenkins-psql-cast-db
+          image: postgres:12.1-alpine
+          imagePullPolicy: IfNotPresent
+        
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: exam-cast-credentials
+                  key: cast-db-name
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: exam-cast-credentials
+                  key:   cast-db-user
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: exam-cast-credentials
+                  key: cast-db-password
+                  
+            - name: PGDATA
+              value: /var/lib/postgresql/data/
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c 
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          volumeMounts:
+            - name: cast-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: cast-db-data
+
+      spec:
+        accessModes:
+          - ReadWriteOnce
+
+        resources:
+          requests:
+            storage: 1Gi     

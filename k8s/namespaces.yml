@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins-dev-exam
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins-qa-exam
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins-staging-exam
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins-prod-exam

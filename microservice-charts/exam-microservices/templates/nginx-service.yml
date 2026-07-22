@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-nginx-service
+spec:
+  type: {{ .Values.nginx.service.type }}
+
+  selector: 
+    app: jenkins-nginx-deployment
+    
+  ports:
+  - name: http
+    protocol: TCP
+    port: {{ .Values.nginx.service.port }}
+    targetPort: {{ .Values.nginx.service.targetPort }}
+    nodePort: {{ .Values.nginx.service.nodePort }}

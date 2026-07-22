@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-nginx-deployment
+  labels:
+    app: jenkins-nginx-deployment
+spec:
+  revisionHistoryLimit: {{ .Values.nginx.revisionHistoryLimit }}
+  replicas: {{ .Values.nginx.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: jenkins-nginx-deployment
+
+  template:
+    metadata:
+      labels:
+        app: jenkins-nginx-deployment
+      
+      annotations:
+        checksum/nginx-config: {{ .Files.Get "files/nginx/default.conf" | sha256sum }}
+
+    spec:
+
+      restartPolicy: Always
+      containers:
+        - name: jenkins-nginx-deployment
+          image: "{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}"
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+
+          ports:
+          - name: http
+            containerPort: {{ .Values.nginx.containerPort }}
+            protocol: TCP
+          
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 15
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: {{ .Values.nginx.resources.requests.cpu }}
+              memory: {{ .Values.nginx.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.nginx.resources.limits.cpu }}
+              memory: {{ .Values.nginx.resources.limits.memory }}
+
+          volumeMounts:
+            - name: nginx-config-storage
+              mountPath: /etc/nginx/conf.d
+              readOnly: true             
+      volumes:
+      - name: nginx-config-storage
+        configMap:
+          name: jenkins-nginx-configmap
+          items:
+            - key: default.conf
+              path: default.conf

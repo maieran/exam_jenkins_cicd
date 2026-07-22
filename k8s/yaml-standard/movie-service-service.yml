@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-movie-service-service
+  labels:
+    app: jenkins-movie-service-service
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: jenkins-movie-service-deployment
+  
+  ports:
+  - name: http
+    protocol: TCP
+    # Port used by NGINX and other Kubernetes workloads.
+    port: 8000
+    # Port on which Uvicorn listens inside the container.
+    targetPort: 8000
