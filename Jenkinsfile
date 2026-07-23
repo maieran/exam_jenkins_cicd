@@ -426,13 +426,6 @@ pipeline {
                         env.QA_RELEASE
                     )
                 }
-
-                // sh '''
-                //     helm test "$QA_RELEASE" \
-                //         --namespace "$QA_NAMESPACE"
-                //         --logs \
-                //         --timeout 2m
-                // '''
             }
         }
 
@@ -449,24 +442,6 @@ pipeline {
                         env.STAGING_RELEASE,
                         'values-staging.yml'
                     )
-                    // synchronizeDatabaseSecrets(
-                    //     env.DEV_NAMESPACE,
-                    //     'staging'
-                    // )
-
-                    // sh '''
-                    //     rm -rf ~/.kube
-                    //     mkdir ~/.kube
-                    //     ls
-                    //     cat $KUBECONFIG > ~/.kube/config
-                    //     helm upgrade --install ${STAGING_RELEASE} "$CHART_PATH" \
-                    //         --namespace ${STAGING_NAMESPACE} \
-                    //         --values "$CHART_PATH/values-staging.yml" \
-                    //         --set-string images.castService.tag="$IMAGE_TAG" \
-                    //         --set-string.images.movieService.tag="$IMAGE_TAG" \
-                    //         --wait \
-                    //         --timeout 5m
-                    // '''
                 }
 
             }
