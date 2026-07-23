@@ -168,12 +168,16 @@ pipeline {
         stage('Set Image Tag') {
             steps {
                 script {
-                    if (!env.GIT_COMMIT) {
-                        error('GIT_COMMIT is not availabe after checkout.')
-                    }
+                    env.GIT_COMMIT = sh(
+                        script: 'git rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
+
                     env.IMAGE_TAG = env.GIT_COMMIT.take(8)
                 }
-                echo "The Image tag: ${env.IMAGE_TAG}"
+
+                echo "Git commit: ${env.GIT_COMMIT}"
+                echo "Docker image tag: ${env.IMAGE_TAG}"
             }
         }
 
