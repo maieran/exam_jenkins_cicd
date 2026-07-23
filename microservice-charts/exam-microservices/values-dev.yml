@@ -8,4 +8,4 @@ nginx:
   replicaCount: 1
 
   service:
-    nodePort: 30088
+    nodePort: 30080
